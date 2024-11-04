@@ -12,7 +12,7 @@
 
 ## 3. structure du programme:
 
-`go
+```go
 
 import "fmt"
 
@@ -20,4 +20,4 @@ func main() {
     var task string
     fmt.Print("Voulez-vous ajouter une tâche? (y/n): ")
 
-`
+```
