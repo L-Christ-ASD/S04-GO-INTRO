@@ -1,21 +1,17 @@
 package main
 
+import "log"
 
+var (
+	token = "c732a4f732342956ec521490b59a7dce"
+)
 
-func main () {
-    t := Task{
-        Title: "dormir",
-        Description: "c'est bien de dormir",
-        Completed: false,
-    }
-    tasks[t.Title] = &t   // ou tasks["Dormir"] = t
+func main() {
+	ville := "najac"
 
-    //log.printf("Notre tâche : %v", t)
-    //t.display()
-
-    displayAlltasks()
-
-    addTask()
-    t.Done()
-    displayAlltasks()
+	coord, err := getCoordFromCity(ville)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	log.Printf("%#v", coord)
 }
