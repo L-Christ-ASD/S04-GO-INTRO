@@ -1,26 +1,21 @@
 package main
 
-import (
-	"fmt" 
-	"bufio"
-	"os"
-)
 
 
-func main() {
-	//var task string
-	var response string
+func main () {
+    t := Task{
+        Title: "dormir",
+        Description: "c'est bien de dormir",
+        Completed: false,
+    }
+    tasks[t.Title] = &t   // ou tasks["Dormir"] = t
 
-	fmt.Print("Voulez-vous ajouter une tâche? (y/n): ")
-	fmt.Scanln(&response)
+    //log.printf("Notre tâche : %v", t)
+    //t.display()
 
-	if response == "y" {
-		fmt.Print("Veuillez entrer la description de la tâche: ")
-		reader := bufio.NewReader(os.Stdin)
-		task, _ := reader.ReadString('\n')
-		fmt.Println("Tâche ajoutée:", task)
-	} else {
-		fmt.Println("Aucune tâche ajoutée.")
-	}
-	
+    displayAlltasks()
+
+    addTask()
+    t.Done()
+    displayAlltasks()
 }

@@ -14,10 +14,21 @@
 
 ```go
 
-import "fmt"
+func main() {
+	//var task string
+	var response string
 
-func main() { 
-    var task string
-    fmt.Print("Voulez-vous ajouter une tâche? (y/n): ")
+	fmt.Print("Voulez-vous ajouter une tâche? (y/n): ")
+	fmt.Scanln(&response)
+
+	if response == "y" {
+		fmt.Print("Veuillez entrer la description de la tâche: ")
+		reader := bufio.NewReader(os.Stdin)
+		task, _ := reader.ReadString('\n')
+		fmt.Println("Tâche ajoutée:", task)
+	} else {
+		fmt.Println("Aucune tâche ajoutée.")
+	}
+	
 }
 ```
