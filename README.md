@@ -1,30 +1,43 @@
-# Le challenge
+<img align="right" alt="DiscordGo logo" src="/docs/img/discordgo.svg" width="200">
 
-*pour ce soir* :
+## DiscordGo Direct Message Ping Pong Example
 
-## Implémenter une structure Player contenant les données suivantes : 
-**nom, pseudo, age (int), health(int), mana (int)**
+This example demonstrates how to utilize DiscordGo to create a Ping Pong Bot
+that sends the response through Direct Message.
 
-- Déclarer et initialiser une map players qui index avec le nom d'un player  
-  des objects de type *Player
+This Bot will respond to "ping" in any server it's in with "Pong!" in the
+sender's DM.
 
-## Implémenter pour la structure Player les fonctions suivantes :
+**Join [Discord Gophers](https://discord.gg/0f1SbxBZjYoCtNPP)
+Discord chat channel for support.**
 
-- save() qui permet de stocker dans un fichier nommé nom.yml 
-  toutes les données d'un joueur
-- del() qui permet de supprimer un player (de la map et qui supprimer
-  le fichier .yml avec son tests unitaire associé)
-- display() qui retourne une string décrivant un joueur avec son 
-  test unitaire associé
+### Build
 
-## Une fonction playerLoad(name string) qui retourne un Player et qui va :
+This assumes you already have a working Go environment setup and that
+DiscordGo is correctly installed on your system.
 
-- charger un player depuis la map s'il existe dedans
-- créer un player s'il n'existe pas en demandant une saisie utilisateur 
-  (seulement le pseudo) sur l'entrée standard (stdin) puis l'ajouter dans la map
-- charger le player s'il existe depuis le fichier .yml et l'ajouter a la map
-- Un test unitaire qui load un player unexistant, le créé et le détruit   
-  ensuite.
+From within the dm_pingpong example folder, run the below command to compile the
+example.
 
-## Note : 
-En utilisant les tests unitaire uniquement pour vos tests vous pouvez éviter d'implémenter la fonction main() qu'on met généralement dans le main.go et donc vous contenter pour ce challenge de deux fichiers player.go et player_test.go
+```sh
+go build
+```
+
+### Usage
+
+This example uses bot tokens for authentication only. While user/password is
+supported by DiscordGo, it is not recommended for bots.
+
+```
+./dm_pingpong --help
+Usage of ./dm_pingpong:
+  -t string
+        Bot Token
+```
+
+The below example shows how to start the bot
+
+```sh
+./dm_pingpong -t YOUR_BOT_TOKEN
+Bot is now running.  Press CTRL-C to exit.
+```
