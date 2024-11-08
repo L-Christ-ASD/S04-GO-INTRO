@@ -23,7 +23,7 @@ func TestDisplay(t *testing.T) {
 	if !strings.Contains(p.display(), "THE_STAR") {
 		t.Fatalf("Username THE_STAR should appear in %v", p.display())
 	}
-	//log.Printf(p.display())
+	
 }
 func TestLoad(t *testing.T) {
 	p := playerLoad("toto")

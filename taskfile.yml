@@ -1,0 +1,14 @@
+version: '3'
+
+tasks:
+  default:
+    cmds:
+      - task: deploy
+  build:
+    cmds:
+      - CGO_ENABLED=0 go build -o bin/task
+  deploy:
+    deps: [build]
+    cmds:
+      - scp bin/task student@l-christ-asd-server.eddi.cloud:/home/student/
+      - ssh student@l-christ-asd-server.eddi.cloud "chmod u+x task"
