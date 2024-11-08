@@ -1,8 +1,12 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"io"
 	"log"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -11,92 +15,120 @@ import (
 	"github.com/joho/godotenv"
 )
 
-func main() {
-	// Create a new Discord session using the provided bot token.
+// Structure pour la requête à l'API OpenAI
+type OpenAIRequest struct {
+	Model    string   `json:"model"`
+	Messages []Message `json:"messages"`
+}
 
-	// load .env file
+// Structure pour un message dans la requête
+type Message struct {
+	Role    string `json:"role"`
+	Content string `json:"content"`
+}
+
+// Structure pour la réponse de l'API OpenAI
+type OpenAIResponse struct {
+	Choices []Choice `json:"choices"`
+}
+
+// Structure pour un choix dans la réponse
+type Choice struct {
+	Message Message `json:"message"`
+}
+
+func main() {
+	// Charger le fichier .env
 	err := godotenv.Load(".env")
 	if err != nil {
 		log.Fatalf("Erreur lors du chargement du fichier .env : %v", err)
 	}
-	// get token from env
+
+	// Obtenir les tokens
 	token := os.Getenv("TOKEN_DISCORD")
+	openaiKey := os.Getenv("OPENAI_API_KEY")
+
+	// Créer une session Discord
 	dg, err := discordgo.New("Bot " + token)
 	if err != nil {
-		fmt.Println("error creating Discord session,", err)
-		return
+		log.Fatalf("Erreur lors de la création de la session Discord : %v", err)
 	}
 
-	// Register the messageCreate func as a callback for MessageCreate events.
-	dg.AddHandler(messageCreate)
+	// Ajouter un gestionnaire d'événements pour les messages
+	dg.AddHandler(func(s *discordgo.Session, m *discordgo.MessageCreate) {
+		if m.Author.ID == s.State.User.ID {
+			return
+		}
 
-	// Just like the ping pong example, we only care about receiving message
-	// events in this example.
-	//dg.Identify.Intents = discordgo.IntentsGuildMessages
+		// Appeler l'API OpenAI pour les messages qui ne commencent pas par "!"
+		if len(m.Content) > 0 && m.Content[0] != '!' {
+			response, err := getAIResponse(openaiKey, m.Content)
+			if err != nil {
+				log.Printf("Erreur lors de l'appel à l'API OpenAI : %v", err)
+				s.ChannelMessageSend(m.ChannelID, "Erreur lors de la génération de la réponse.")
+				return
+			}
+			s.ChannelMessageSend(m.ChannelID, response)
+		}
+	})
 
-	// Open a websocket connection to Discord and begin listening.
+	// Ouvrir la connexion
 	err = dg.Open()
 	if err != nil {
-		fmt.Println("error opening connection,", err)
-		return
+		log.Fatalf("Erreur lors de l'ouverture de la connexion : %v", err)
 	}
+	defer dg.Close()
 
-	// Wait here until CTRL-C or other term signal is received.
-	fmt.Println("Bot is now running. Press CTRL-C to exit.")
+	fmt.Println("Bot en cours d'exécution. Appuyez sur CTRL+C pour quitter.")
 	sc := make(chan os.Signal, 1)
 	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
 	<-sc
-
-	// Cleanly close down the Discord session.
-	dg.Close()
 }
 
-// This function will be called (due to AddHandler above) every time a new
-// message is created on any channel that the authenticated bot has access to.
-//
-// It is called whenever a message is created but only when it's sent through a
-// server as we did not request IntentsDirectMessages.
-
-func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
-	// Ignore all messages created by the bot itself
-	// This isn't required in this specific example but it's a good practice.
-	if m.Author.ID == s.State.User.ID {
-		return
+// Fonction pour obtenir une réponse de l'API OpenAI
+func getAIResponse(apiKey, message string) (string, error) {
+	url := "https://api.openai.com/v1/chat/completions"
+	reqBody := OpenAIRequest{
+		Model: "gpt-4",
+		Messages: []Message{
+			{Role: "user", Content: message},
+		},
 	}
-	log.Printf("Message reçu : %v de la part de %v", m.Content, m.Author.Username)
 
-	switch m.Content {
-	case "ping":
-		s.ChannelMessageSend(m.ChannelID, "pong")
-	case "help":
-		_, err := s.ChannelMessageSend(m.ChannelID, "il n'y a pas d'aide encore")
-		if err != nil {
-			log.Printf("Impossible d'envoyer l'aide : %v", err)
-		}
-	default:
-		log.Printf("message inconnu : %v", m.Content)
+	jsonData, err := json.Marshal(reqBody)
+	if err != nil {
+		return "", fmt.Errorf("erreur lors de l'encodage JSON : %v", err)
 	}
-	p := playerLoad(m.Author.Username)
-	switch p.State {
-	case "needPseudo":
-		s.ChannelMessageSend(m.ChannelID, "Renseigne ton pseudo")
-		p.State = "waitPseudo"
-	case "waitPseudo":
-		p.Username = m.Content
-		s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Est tu certain de vouloir %v comme pseudo ?", m.Content))
-		p.State = "confirmPseudo"
-	case "confirmPseudo":
-		switch m.Content {
-		case "y", "o", "Y", "O":
-			p.State = "active"
-		default:
-			p.State = "waitPseudo"
-			s.ChannelMessageSend(m.ChannelID, "Du coup resaisie ton pseudo")
-			// p.msg("coucou")
-		}
-		p.save()
-	case "active":
-		// Maintenant j'implémente mon jeux
 
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return "", fmt.Errorf("erreur lors de la création de la requête : %v", err)
 	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+apiKey)
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("erreur lors de l'appel à l'API OpenAI : %v", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("erreur lors de la lecture de la réponse : %v", err)
+	}
+
+	var openAIResp OpenAIResponse
+	err = json.Unmarshal(body, &openAIResp)
+	if err != nil {
+		return "", fmt.Errorf("erreur lors du décodage JSON : %v", err)
+	}
+
+	if len(openAIResp.Choices) > 0 {
+		return openAIResp.Choices[0].Message.Content, nil
+	}
+
+	return "Je n'ai pas pu générer de réponse.", nil
 }
